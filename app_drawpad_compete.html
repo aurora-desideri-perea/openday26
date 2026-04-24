@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Open Day 2026</title>
+<title>Jornada de Puertas Abiertas 2026</title>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 
 <style>
@@ -72,9 +71,9 @@ canvas {
 <img src="imgs/simpler-header.png" style="width:50%">
 
 <div class="controls">
-    <button onclick="addPlayer()">Add Scientist</button>
-    <button onclick="predictAll()" id="predictBtn" disabled>Loading AI...</button>
-    <button onclick="resetAll()">Reset Game</button>
+    <button onclick="addPlayer()">Añadir científico</button>
+    <button onclick="predictAll()" id="predictBtn" disabled>Cargando IA...</button>
+    <button onclick="resetAll()">Reiniciar juego</button>
 </div>
 
 <div id="playersContainer"></div>
@@ -83,7 +82,6 @@ canvas {
 let players = [];
 let model;
 
-// DRAWING
 function enableDrawing(canvas, ctx) {
     let isDrawing = false;
 
@@ -107,7 +105,6 @@ function enableDrawing(canvas, ctx) {
     canvas.addEventListener('mouseleave', () => isDrawing = false);
 }
 
-// ADD PLAYER
 function addPlayer() {
     const container = document.getElementById('playersContainer');
     const index = players.length + 1;
@@ -116,7 +113,7 @@ function addPlayer() {
     wrapper.className = 'canvas-container';
 
     const label = document.createElement('h3');
-    label.innerText = "Scientist " + index;
+    label.innerText = "Científico " + index;
 
     const canvas = document.createElement('canvas');
     canvas.width = 200;
@@ -127,16 +124,16 @@ function addPlayer() {
     ctx.fillRect(0, 0, 200, 200);
 
     const clearBtn = document.createElement('button');
-    clearBtn.innerText = 'Clear';
+    clearBtn.innerText = 'Limpiar';
 
     const result = document.createElement('div');
     result.className = 'result';
-    result.innerText = 'Draw your inhibitor!';
+    result.innerText = '¡Dibuja tu inhibidor!';
 
     clearBtn.onclick = () => {
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, 200, 200);
-        result.innerText = 'Draw your inhibitor!';
+        result.innerText = '¡Dibuja tu inhibidor!';
         result.style.backgroundColor = '#fff3e0';
     };
 
@@ -151,7 +148,6 @@ function addPlayer() {
     players.push({ canvas, ctx, result });
 }
 
-// PREDICT ALL
 function predictAll() {
     players.forEach(player => {
         const tensor = tf.browser.fromPixels(player.canvas, 1)
@@ -163,9 +159,9 @@ function predictAll() {
         const prediction = model.predict(tensor).dataSync();
 
         const labels = [
-            "🟢 Selective inhibitor",
-            "🔴 Toxic inhibitor",
-            "Not sure..."
+            "🟢 Inhibidor selectivo",
+            "🔴 Inhibidor tóxico",
+            "No estoy seguro..."
         ];
 
         const colors = ["#c8e6c9", "#ffccbc", "#cfd8dc"];
@@ -181,7 +177,6 @@ function predictAll() {
     });
 }
 
-// RESET
 function resetAll() {
     const container = document.getElementById('playersContainer');
     container.innerHTML = '';
@@ -189,7 +184,6 @@ function resetAll() {
     addPlayer();
 }
 
-// MODEL TRAINING
 async function trainModel() {
     model = tf.sequential();
     model.add(tf.layers.conv2d({
@@ -219,7 +213,6 @@ async function trainModel() {
 
     for (let i = 0; i < 200; i++) {
 
-        // RECTANGLE
         offCtx.fillStyle = 'white';
         offCtx.fillRect(0, 0, 100, 100);
         offCtx.lineWidth = 6;
@@ -238,7 +231,6 @@ async function trainModel() {
             .div(255));
         ys.push([1,0,0]);
 
-        // TRIANGLE
         offCtx.fillStyle = 'white';
         offCtx.fillRect(0, 0, 100, 100);
 
@@ -255,7 +247,6 @@ async function trainModel() {
             .div(255));
         ys.push([0,1,0]);
 
-        // NOISE
         offCtx.fillStyle = 'white';
         offCtx.fillRect(0, 0, 100, 100);
 
@@ -282,12 +273,11 @@ async function trainModel() {
     });
 
     document.getElementById('predictBtn').disabled = false;
-    document.getElementById('predictBtn').innerText = "Test All Inhibitors";
+    document.getElementById('predictBtn').innerText = "Probar todos los inhibidores";
 
     tf.dispose([xs, ys, xTensor, yTensor]);
 }
 
-// INIT
 addPlayer();
 trainModel();
 </script>

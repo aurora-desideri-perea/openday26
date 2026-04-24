@@ -1,4 +1,4 @@
-## IRB Open Day 2026 | IA y diseño de fármacos
+## IRB Jornada de Puertas Abiertas 2026 | IA y diseño de fármacos
 
 Imagina que dentro de nuestras células hay unas “tijeritas” muy especiales llamadas calpaínas ✂️. Cuando funcionan bien, ayudan a mantener la célula limpia y ordenada, recortando solo lo que sobra. Pero en algunas enfermedades como el cáncer, estas tijeras se descontrolan y empiezan a cortar sin parar, dañando partes importantes de la célula.
 
