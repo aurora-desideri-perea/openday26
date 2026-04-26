@@ -1,179 +1,286 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Selective Therapy Game</title>
-<script src="tf.min.js"></script>
+<title>Jornada de Puertas Abiertas 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
 <style>
-body { font-family: 'Comic Sans MS', cursive, sans-serif; text-align: center; margin-top: 30px; background-color: #e0f7fa; color: #333; }
-.container { display: flex; justify-content: center; gap: 40px; align-items: flex-start; margin-top: 20px; }
-.canvas-container { display: flex; flex-direction: column; align-items: center; }
-canvas { border: 4px solid #006064; cursor: crosshair; background-color: white; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); }
-.instructions { max-width: 300px; background: white; padding: 20px; border-radius: 12px; border: 3px solid #00acc1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: left; }
-button { padding: 15px 30px; font-size: 18px; margin: 10px; cursor: pointer; border-radius: 8px; border: none; background-color: #00838f; color: white; font-weight: bold; transition: background 0.3s; }
-button:hover { background-color: #00acc1; }
-button:disabled { background-color: #b2ebf2; cursor: not-allowed; color: #777; }
-h1 { color: #006064; font-size: 2.5em; }
-#resultText { margin-top: 20px; font-size: 1.5em; font-weight: bold; padding: 15px; border-radius: 8px; display: inline-block; min-width: 300px; }
-</style>
-</head>
-<body>
-
-<h1>Target the Bad Scissor! ✂️</h1>
-
-<div class="container">
-    <div class="instructions">
-        <h3>How to Play:</h3>
-        <p><strong>1. Good Scissor:</strong> Has a Triangle notch. We want to leave it alone!</p>
-        <p><strong>2. Bad Scissor:</strong> Has a Rectangle notch. We need to block it!</p>
-        <p>Draw a <strong>Rectangle</strong> inhibitor to block the bad scissor safely. Don't draw triangles or scribbles!</p>
-    </div>
-
-    <div class="canvas-container">
-        <canvas id="drawingPad" width="300" height="300"></canvas>
-        <div>
-            <button onclick="clearCanvas()">Clear</button>
-            <button onclick="predictDrawing()" id="predBtn" disabled>Loading AI...</button>
-        </div>
-        <div id="resultText" style="background-color: #fff3e0;">AI is learning shapes. Please wait...</div>
-    </div>
-</div>
-
-<script>
-const canvas = document.getElementById('drawingPad');
-const ctx = canvas.getContext('2d');
-const resultText = document.getElementById('resultText');
-const predBtn = document.getElementById('predBtn');
-
-ctx.fillStyle = 'white';
-ctx.fillRect(0, 0, 300, 300);
-
-let isDrawing = false;
-
-canvas.addEventListener('mousedown', (e) => {
-    isDrawing = true;
-    ctx.beginPath();
-    ctx.moveTo(e.offsetX, e.offsetY);
-});
-
-canvas.addEventListener('mousemove', (e) => {
-    if (isDrawing) {
-        ctx.lineWidth = 12;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = 'black';
-        ctx.lineTo(e.offsetX, e.offsetY);
-        ctx.stroke();
-    }
-});
-
-canvas.addEventListener('mouseup', () => {
-    isDrawing = false;
-});
-
-canvas.addEventListener('mouseleave', () => {
-    isDrawing = false;
-});
-
-function clearCanvas() {
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, 300, 300);
-    resultText.innerText = 'Draw your inhibitor!';
-    resultText.style.backgroundColor = '#fff3e0';
+body {
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    text-align: center;
+    margin-top: 30px;
+    background-color: #b2e4edff;
+    color: #333;
 }
 
+.controls {
+    margin: 20px;
+}
+
+button {
+    padding: 12px 25px;
+    font-size: 16px;
+    margin: 8px;
+    cursor: pointer;
+    border-radius: 8px;
+    border: none;
+    background-color: #00838f;
+    color: white;
+    font-weight: bold;
+}
+
+button:hover { background-color: #00acc1; }
+button:disabled { background-color: #00abc169; cursor: not-allowed; }
+
+#playersContainer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.canvas-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+canvas {
+    border: 4px solid #006064;
+    cursor: crosshair;
+    background-color: white;
+    border-radius: 12px;
+}
+
+.result {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    min-width: 200px;
+    font-weight: bold;
+    background-color: #fff3e0;
+}
+</style>
+
+</head>
+
+<body>
+
+<img src="imgs/simpler-header.png" style="width:50%">
+
+<div class="controls">
+    <button onclick="addPlayer()">Añadir científico</button>
+    <button onclick="predictAll()" id="predictBtn" disabled>Cargando IA...</button>
+    <button onclick="resetAll()">Reiniciar juego</button>
+</div>
+
+<div id="playersContainer"></div>
+
+<script>
+let players = [];
 let model;
 
-async function trainLocalModel() {
+function enableDrawing(canvas, ctx) {
+    let isDrawing = false;
+
+    canvas.addEventListener('mousedown', (e) => {
+        isDrawing = true;
+        ctx.beginPath();
+        ctx.moveTo(e.offsetX, e.offsetY);
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        if (isDrawing) {
+            ctx.lineWidth = 12;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = 'black';
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+        }
+    });
+
+    canvas.addEventListener('mouseup', () => isDrawing = false);
+    canvas.addEventListener('mouseleave', () => isDrawing = false);
+}
+
+function addPlayer() {
+    const container = document.getElementById('playersContainer');
+    const index = players.length + 1;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'canvas-container';
+
+    const label = document.createElement('h3');
+    label.innerText = "Científico " + index;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 200;
+    canvas.height = 200;
+
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, 200, 200);
+
+    const clearBtn = document.createElement('button');
+    clearBtn.innerText = 'Limpiar';
+
+    const result = document.createElement('div');
+    result.className = 'result';
+    result.innerText = '¡Dibuja tu inhibidor!';
+
+    clearBtn.onclick = () => {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, 200, 200);
+        result.innerText = '¡Dibuja tu inhibidor!';
+        result.style.backgroundColor = '#fff3e0';
+    };
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(canvas);
+    wrapper.appendChild(clearBtn);
+    wrapper.appendChild(result);
+    container.appendChild(wrapper);
+
+    enableDrawing(canvas, ctx);
+
+    players.push({ canvas, ctx, result });
+}
+
+function predictAll() {
+    players.forEach(player => {
+        const tensor = tf.browser.fromPixels(player.canvas, 1)
+            .resizeBilinear([28, 28])
+            .toFloat()
+            .div(255)
+            .expandDims();
+
+        const prediction = model.predict(tensor).dataSync();
+
+        const labels = [
+            "🟢 Inhibidor selectivo",
+            "🔴 Inhibidor tóxico",
+            "No estoy seguro..."
+        ];
+
+        const colors = ["#c8e6c9", "#ffccbc", "#cfd8dc"];
+
+        const maxIndex = prediction.indexOf(Math.max(...prediction));
+        const confidence = Math.round(prediction[maxIndex] * 100);
+
+        player.result.innerText =
+            labels[maxIndex] + " (" + confidence + "%)";
+        player.result.style.backgroundColor = colors[maxIndex];
+
+        tensor.dispose();
+    });
+}
+
+function resetAll() {
+    const container = document.getElementById('playersContainer');
+    container.innerHTML = '';
+    players = [];
+    addPlayer();
+}
+
+async function trainModel() {
     model = tf.sequential();
-    model.add(tf.layers.conv2d({inputShape: [28, 28, 1], filters: 16, kernelSize: 3, activation: 'relu'}));
+    model.add(tf.layers.conv2d({
+        inputShape: [28, 28, 1],
+        filters: 16,
+        kernelSize: 3,
+        activation: 'relu'
+    }));
     model.add(tf.layers.maxPooling2d({poolSize: 2}));
     model.add(tf.layers.flatten());
     model.add(tf.layers.dense({units: 64, activation: 'relu'}));
     model.add(tf.layers.dense({units: 3, activation: 'softmax'}));
-    model.compile({optimizer: 'adam', loss: 'categoricalCrossentropy', metrics: ['accuracy']});
+
+    model.compile({
+        optimizer: 'adam',
+        loss: 'categoricalCrossentropy',
+        metrics: ['accuracy']
+    });
 
     const xs = [];
     const ys = [];
+
     const offCanvas = document.createElement('canvas');
     offCanvas.width = 100;
     offCanvas.height = 100;
     const offCtx = offCanvas.getContext('2d');
 
-    for (let i = 0; i < 300; i++) {
+    for (let i = 0; i < 200; i++) {
+
         offCtx.fillStyle = 'white';
         offCtx.fillRect(0, 0, 100, 100);
         offCtx.lineWidth = 6;
         offCtx.strokeStyle = 'black';
-        
+
         const w = 30 + Math.random() * 40;
         const h = 20 + Math.random() * 50;
         const x = 10 + Math.random() * (90 - w - 10);
         const y = 10 + Math.random() * (90 - h - 10);
+
         offCtx.strokeRect(x, y, w, h);
-        
-        let tensorRect = tf.browser.fromPixels(offCanvas, 1).resizeBilinear([28, 28]).toFloat().div(255);
-        xs.push(tensorRect);
-        ys.push([1, 0, 0]);
+
+        xs.push(tf.browser.fromPixels(offCanvas,1)
+            .resizeBilinear([28,28])
+            .toFloat()
+            .div(255));
+        ys.push([1,0,0]);
 
         offCtx.fillStyle = 'white';
         offCtx.fillRect(0, 0, 100, 100);
+
         offCtx.beginPath();
-        const tx = 50 + (Math.random() * 20 - 10);
-        const ty = 20 + (Math.random() * 10 - 5);
-        offCtx.moveTo(tx, ty);
-        offCtx.lineTo(tx - (20 + Math.random() * 20), ty + (40 + Math.random() * 20));
-        offCtx.lineTo(tx + (20 + Math.random() * 20), ty + (40 + Math.random() * 20));
+        offCtx.moveTo(50, 20);
+        offCtx.lineTo(20, 80);
+        offCtx.lineTo(80, 80);
         offCtx.closePath();
         offCtx.stroke();
 
-        let tensorTri = tf.browser.fromPixels(offCanvas, 1).resizeBilinear([28, 28]).toFloat().div(255);
-        xs.push(tensorTri);
-        ys.push([0, 1, 0]);
+        xs.push(tf.browser.fromPixels(offCanvas,1)
+            .resizeBilinear([28,28])
+            .toFloat()
+            .div(255));
+        ys.push([0,1,0]);
 
         offCtx.fillStyle = 'white';
         offCtx.fillRect(0, 0, 100, 100);
+
         for (let j = 0; j < 8; j++) {
             offCtx.beginPath();
-            offCtx.moveTo(Math.random() * 100, Math.random() * 100);
-            offCtx.lineTo(Math.random() * 100, Math.random() * 100);
+            offCtx.moveTo(Math.random()*100, Math.random()*100);
+            offCtx.lineTo(Math.random()*100, Math.random()*100);
             offCtx.stroke();
         }
 
-        let tensorNoise = tf.browser.fromPixels(offCanvas, 1).resizeBilinear([28, 28]).toFloat().div(255);
-        xs.push(tensorNoise);
-        ys.push([0, 0, 1]);
+        xs.push(tf.browser.fromPixels(offCanvas,1)
+            .resizeBilinear([28,28])
+            .toFloat()
+            .div(255));
+        ys.push([0,0,1]);
     }
 
     const xTensor = tf.stack(xs);
     const yTensor = tf.tensor2d(ys);
 
-    await model.fit(xTensor, yTensor, {epochs: 15, batchSize: 32});
-    
-    predBtn.disabled = false;
-    predBtn.innerText = 'Test Inhibitor';
-    resultText.innerText = 'AI Ready! Draw your inhibitor.';
-    resultText.style.backgroundColor = '#e8f5e9';
-    
+    await model.fit(xTensor, yTensor, {
+        epochs: 15,
+        batchSize: 32
+    });
+
+    document.getElementById('predictBtn').disabled = false;
+    document.getElementById('predictBtn').innerText = "Probar todos los inhibidores";
+
     tf.dispose([xs, ys, xTensor, yTensor]);
 }
 
-async function predictDrawing() {
-    const tensor = tf.browser.fromPixels(canvas, 1).resizeBilinear([28, 28]).toFloat().div(255).expandDims();
-    const prediction = model.predict(tensor).dataSync();
-    
-    const labels = ["Selective Inhibitor! 🟢", "Toxic! Hits Good Scissor 🔴", "Invalid Shape! (Scribble) ⚫"];
-    const colors = ["#c8e6c9", "#ffccbc", "#cfd8dc"];
-    
-    const maxIndex = prediction.indexOf(Math.max(...prediction));
-    const confidence = Math.round(prediction[maxIndex] * 100);
-    
-    resultText.innerText = labels[maxIndex] + " (" + confidence + "%)";
-    resultText.style.backgroundColor = colors[maxIndex];
-    
-    tensor.dispose();
-}
-
-trainLocalModel();
+addPlayer();
+trainModel();
 </script>
+
 </body>
 </html>
